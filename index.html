@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>랜덤 지하철 · 역 · 음식</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.06);
+      --border:rgba(148,163,184,.18);
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --shadow: 0 18px 55px rgba(0,0,0,.48);
+      --radius: 18px;
+      --radius2: 22px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% -10%, rgba(56,189,248,.22), transparent 55%),
+        radial-gradient(1100px 700px at 105% 0%, rgba(34,197,94,.22), transparent 50%),
+        radial-gradient(800px 600px at 50% 125%, rgba(148,163,184,.10), transparent 55%),
+        linear-gradient(180deg, #070b14 0%, #0b1220 50%, #070b14 100%);
+      overflow-x:hidden;
+    }
+
+    .wrap{max-width:880px; margin:0 auto; padding:18px 14px 46px;}
+    header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:8px 6px 16px;}
+    .brand{display:flex; flex-direction:column; gap:6px;}
+    h1{margin:0; font-size:18px; letter-spacing:-.3px;}
+    .sub{margin:0; color:var(--muted); font-size:12.5px; line-height:1.35;}
+
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      color:var(--muted);
+      font-size:12px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:rgba(148,163,184,.5)}
+
+    .grid{display:grid; gap:12px;}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      position:relative;
+      overflow:hidden;
+    }
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:-80px;
+      background: radial-gradient(400px 220px at var(--mx, 30%) var(--my, 0%), rgba(56,189,248,.12), transparent 60%);
+      pointer-events:none;
+      opacity:.95;
+    }
+
+    .steps{display:grid; gap:12px;}
+    .step{
+      display:grid; gap:10px;
+      background:rgba(0,0,0,.18);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:12px;
+      position:relative;
+      overflow:hidden;
+    }
+    .stepHead{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    .kicker{display:flex; align-items:center; gap:10px;}
+    .badge{
+      width:26px;height:26px;border-radius:10px;
+      display:grid; place-items:center;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:rgba(229,231,235,.9);
+      font-weight:900;
+      font-size:13px;
+    }
+    .label{display:flex; flex-direction:column; gap:2px;}
+    .label b{font-size:14px; letter-spacing:-.2px;}
+    .label span{font-size:12px; color:var(--muted)}
+
+    .value{
+      font-size:20px;
+      font-weight:900;
+      letter-spacing:-.4px;
+      line-height:1.15;
+      min-height: 26px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .value .mini{
+      font-size:12px;
+      font-weight:800;
+      color:rgba(229,231,235,.75);
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+
+    .btnRow{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius:16px;
+      font-weight:900;
+      cursor:pointer;
+      transition: transform .06s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+      touch-action:manipulation;
+    }
+    button:active{transform:scale(.99)}
+    button:focus{outline:none; box-shadow:0 0 0 3px rgba(56,189,248,.25)}
+
+    .primary{
+      background: linear-gradient(135deg, rgba(34,197,94,.92), rgba(56,189,248,.85));
+      border-color: rgba(255,255,255,.14);
+      color:#06111a;
+    }
+    .secondary{background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));}
+    .ghost{background:transparent}
+    .danger{border-color: rgba(251,113,133,.45)}
+
+    button[disabled]{opacity:.45; cursor:not-allowed; transform:none}
+
+    .footerRow{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-top:12px;}
+
+    .hint{color:var(--muted); font-size:12px; line-height:1.35}
+    .hint code{color:rgba(229,231,235,.85)}
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.6);
+      border:1px solid rgba(148,163,184,.25);
+      color:rgba(229,231,235,.92);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:12.5px;
+      box-shadow: 0 20px 55px rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease, transform .18s ease;
+      z-index:9999;
+      max-width: calc(100% - 28px);
+      text-overflow: ellipsis;
+      overflow:hidden;
+      white-space:nowrap;
+    }
+    .toast.show{opacity:1; transform:translateX(-50%) translateY(-2px)}
+
+    @keyframes popIn{
+      0%{transform:translateY(6px); opacity:0}
+      100%{transform:translateY(0); opacity:1}
+    }
+    .animate{animation: popIn .18s ease}
+
+    .locked:after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.18));
+      pointer-events:none;
+    }
+
+    .lineSwatch{
+      width:10px; height:10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.35);
+      box-shadow:0 0 0 3px rgba(0,0,0,.22);
+    }
+
+    .metaPills{display:flex; flex-wrap:wrap; gap:8px;}
+
+    @media (min-width: 720px){
+      h1{font-size:20px}
+      .steps{grid-template-columns:1fr 1fr 1fr;}
+      .btnRow{grid-template-columns: 1fr;}
+      .value{min-height: 52px; align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>랜덤 지하철 · 역 · 음식</h1>
+        <p class="sub">1) 노선 뽑기 → 2) 역 뽑기 → 3) 음식 뽑기. <br/>모바일에서 가볍게 뽑고 떠나는 용도 (DB/서버 없이).</p>
+      </div>
+      <div class="chip" id="statusChip" title="현재 상태">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">대기 중</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card" id="card">
+        <div class="steps">
+          <!-- Step 1 -->
+          <div class="step" id="step1">
+            <div class="stepHead">
+              <div class="kicker">
+                <div class="badge">1</div>
+                <div class="label">
+                  <b>수도권 노선</b>
+                  <span>랜덤으로 1개</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="value" id="lineValue">
+              <span class="mini">아직 안 뽑음</span>
+            </div>
+
+            <div class="btnRow">
+              <button class="primary" id="pickLine">노선 뽑기</button>
+              <button class="secondary" id="repickLine">다시 뽑기</button>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step locked" id="step2">
+            <div class="stepHead">
+              <div class="kicker">
+                <div class="badge">2</div>
+                <div class="label">
+                  <b>해당 노선의 역</b>
+                  <span>노선 선택 후 가능</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="value" id="stationValue">
+              <span class="mini">노선을 먼저 뽑아줘</span>
+            </div>
+
+            <div class="btnRow">
+              <button class="primary" id="pickStation" disabled>역 뽑기</button>
+              <button class="secondary" id="repickStation" disabled>다시 뽑기</button>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step locked" id="step3">
+            <div class="stepHead">
+              <div class="kicker">
+                <div class="badge">3</div>
+                <div class="label">
+                  <b>음식 종류</b>
+                  <span>역 선택 후 가능</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="value" id="foodValue">
+              <span class="mini">역을 먼저 뽑아줘</span>
+            </div>
+
+            <div class="btnRow">
+              <button class="primary" id="pickFood" disabled>음식 뽑기</button>
+              <button class="secondary" id="repickFood" disabled>다시 뽑기</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="footerRow">
+          <div class="hint">
+            • <b>전체 초기화</b>는 아래 버튼으로.<br/>
+            • 데이터(노선/역/음식)는 파일 하단의 <code>DATA</code>만 수정하면 됨.
+          </div>
+          <div class="metaPills">
+            <button class="ghost danger" id="resetAll">전체 초기화</button>
+            <button class="ghost" id="copyResult">결과 복사</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">복사됨</div>
+
+  <script>
+    /**
+     * ✅ MVP 데이터
+     * - 노선/역: 처음엔 대표 역만 넣어도 되고, 나중에 전체로 늘려도 됨.
+     * - line.id는 stations의 key로 사용됨.
+     */
+    const DATA = {
+      lines: [
+        { id: "line1", name: "1호선", color: "#0b5bd3" },
+        { id: "line2", name: "2호선", color: "#22c55e" },
+        { id: "line3", name: "3호선", color: "#f97316" },
+        { id: "line4", name: "4호선", color: "#38bdf8" },
+        { id: "line5", name: "5호선", color: "#a855f7" },
+        { id: "line6", name: "6호선", color: "#d97706" },
+        { id: "line7", name: "7호선", color: "#84cc16" },
+        { id: "line8", name: "8호선", color: "#ec4899" },
+        { id: "line9", name: "9호선", color: "#eab308" },
+        { id: "sinbundang", name: "신분당선", color: "#ef4444" },
+        { id: "gyeongui", name: "경의·중앙선", color: "#60a5fa" },
+        { id: "suinbundang", name: "수인·분당선", color: "#f59e0b" },
+        { id: "airport", name: "공항철도", color: "#06b6d4" },
+        { id: "gyeongchun", name: "경춘선", color: "#34d399" },
+        { id: "seohae", name: "서해선", color: "#8b5cf6" },
+        { id: "ui", name: "우이신설선", color: "#a3a3a3" }
+      ],
+      stations: {
+        // ⚠️ 샘플(대표 역 중심) — 원하면 여기부터 전체 역으로 확장하면 됨.
+        line1: ["서울역", "종각", "종로3가", "동대문", "청량리", "구로", "금정", "인천"],
+        line2: ["시청", "을지로입구", "홍대입구", "신촌", "강남", "잠실", "건대입구", "성수"],
+        line3: ["대화", "연신내", "경복궁", "충무로", "고속터미널", "양재", "수서"],
+        line4: ["당고개", "노원", "동대문", "명동", "서울역", "사당", "안산", "오이도"],
+        line5: ["방화", "김포공항", "여의도", "광화문", "왕십리", "천호", "하남검단산"],
+        line6: ["응암", "합정", "이태원", "한강진", "공덕", "안암", "봉화산"],
+        line7: ["장암", "노원", "건대입구", "가산디지털단지", "고속터미널", "부평구청"],
+        line8: ["암사", "천호", "잠실", "가락시장", "남위례", "모란"],
+        line9: ["개화", "김포공항", "당산", "여의도", "노량진", "고속터미널", "종합운동장"],
+        sinbundang: ["강남", "양재", "판교", "정자", "광교중앙", "광교"],
+        gyeongui: ["서울역", "공덕", "홍대입구", "디지털미디어시티", "일산", "문산"],
+        suinbundang: ["왕십리", "서울숲", "선릉", "수원", "인천", "오이도"],
+        airport: ["서울역", "홍대입구", "김포공항", "인천공항1터미널", "인천공항2터미널"],
+        gyeongchun: ["청량리", "상봉", "평내호평", "가평", "춘천"],
+        seohae: ["소새울", "부천종합운동장", "원시", "대곡", "김포공항"],
+        ui: ["북한산우이", "솔밭공원", "성신여대입구", "보문", "신설동"]
+      },
+      foods: [
+        "국밥", "돈까스", "초밥", "라멘", "파스타", "피자", "쌀국수", "마라탕",
+        "삼겹살", "곱창", "족발/보쌈", "카페/디저트", "베이커리", "브런치", "치킨", "햄버거",
+        "떡볶이", "냉면", "샤브샤브", "이자카야"
+      ]
+    };
+
+    // ----- Utils -----
+    const $ = (sel) => document.querySelector(sel);
+    const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    function toast(msg){
+      const el = $("#toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 1200);
+    }
+
+    function setStatus(text, tone="idle"){
+      $("#statusText").textContent = text;
+      const dot = $("#statusDot");
+      if(tone === "ok") dot.style.background = "rgba(34,197,94,.75)";
+      else if(tone === "warn") dot.style.background = "rgba(251,191,36,.75)";
+      else dot.style.background = "rgba(148,163,184,.55)";
+    }
+
+    function setValue(el, html){
+      el.classList.remove("animate");
+      void el.offsetWidth; // reflow
+      el.innerHTML = html;
+      el.classList.add("animate");
+    }
+
+    function lockStep(stepEl, locked){
+      stepEl.classList.toggle("locked", locked);
+    }
+
+    // ----- State -----
+    const state = { line: null, station: null, food: null };
+
+    // ----- Elements -----
+    const card = $("#card");
+    const step2 = $("#step2");
+    const step3 = $("#step3");
+
+    const lineValue = $("#lineValue");
+    const stationValue = $("#stationValue");
+    const foodValue = $("#foodValue");
+
+    const pickLine = $("#pickLine");
+    const repickLine = $("#repickLine");
+    const pickStation = $("#pickStation");
+    const repickStation = $("#repickStation");
+    const pickFood = $("#pickFood");
+    const repickFood = $("#repickFood");
+
+    const resetAll = $("#resetAll");
+    const copyResult = $("#copyResult");
+
+    // ----- Mouse glow -----
+    card.addEventListener("pointermove", (e) => {
+      const r = card.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * 100;
+      const y = ((e.clientY - r.top) / r.height) * 100;
+      card.style.setProperty("--mx", x + "%");
+      card.style.setProperty("--my", y + "%");
+    });
+
+    // ----- Render helpers -----
+    function renderLine(){
+      if(!state.line){
+        setValue(lineValue, `<span class="mini">아직 안 뽑음</span>`);
+        return;
+      }
+      setValue(lineValue, `
+        <span class="lineSwatch" style="background:${state.line.color}"></span>
+        <span>${state.line.name}</span>
+        <span class="mini">수도권</span>
+      `);
+    }
+
+    function renderStation(){
+      if(!state.station){
+        const msg = state.line ? "아직 안 뽑음" : "노선을 먼저 뽑아줘";
+        setValue(stationValue, `<span class="mini">${msg}</span>`);
+        return;
+      }
+      setValue(stationValue, `<span>${state.station}</span><span class="mini">${state.line?.name ?? ""}</span>`);
+    }
+
+    function renderFood(){
+      if(!state.food){
+        const msg = state.station ? "아직 안 뽑음" : "역을 먼저 뽑아줘";
+        setValue(foodValue, `<span class="mini">${msg}</span>`);
+        return;
+      }
+      setValue(foodValue, `<span>${state.food}</span><span class="mini">오늘의 메뉴</span>`);
+    }
+
+    function syncLocks(){
+      const hasLine = !!state.line;
+      const hasStation = !!state.station;
+
+      lockStep(step2, !hasLine);
+      pickStation.disabled = !hasLine;
+      repickStation.disabled = !hasLine;
+
+      lockStep(step3, !hasStation);
+      pickFood.disabled = !hasStation;
+      repickFood.disabled = !hasStation;
+
+      if(!hasLine) setStatus("대기 중", "idle");
+      else if(hasLine && !hasStation) setStatus("노선 선택됨", "warn");
+      else if(hasStation && !state.food) setStatus("역 선택됨", "warn");
+      else if(state.food) setStatus("완료!", "ok");
+    }
+
+    function hardReset(){
+      state.line = null;
+      state.station = null;
+      state.food = null;
+      renderLine();
+      renderStation();
+      renderFood();
+      syncLocks();
+      toast("초기화 완료");
+    }
+
+    // ----- Actions -----
+    function doPickLine(){
+      state.line = rand(DATA.lines);
+      state.station = null;
+      state.food = null;
+      renderLine();
+      renderStation();
+      renderFood();
+      syncLocks();
+      toast("노선 뽑기 완료");
+    }
+
+    function doPickStation(){
+      if(!state.line) return;
+      const pool = DATA.stations[state.line.id] || [];
+      if(pool.length === 0){
+        toast("이 노선의 역 데이터가 없어요");
+        return;
+      }
+      state.station = rand(pool);
+      state.food = null;
+      renderStation();
+      renderFood();
+      syncLocks();
+      toast("역 뽑기 완료");
+    }
+
+    function doPickFood(){
+      if(!state.station) return;
+      state.food = rand(DATA.foods);
+      renderFood();
+      syncLocks();
+      toast("음식 뽑기 완료");
+    }
+
+    function copyText(txt){
+      if(!txt) return;
+      if(navigator.clipboard?.writeText){
+        navigator.clipboard.writeText(txt).then(() => toast("복사됨"));
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        toast("복사됨");
+      }
+    }
+
+    function buildResultText(){
+      const parts = [];
+      if(state.line) parts.push(state.line.name);
+      if(state.station) parts.push(state.station + "역");
+      if(state.food) parts.push(state.food);
+      if(parts.length === 0) return "아직 뽑은 결과가 없어";
+      return "오늘의 랜덤: " + parts.join(" / ");
+    }
+
+    // ----- Wire -----
+    pickLine.addEventListener("click", doPickLine);
+    repickLine.addEventListener("click", doPickLine);
+
+    pickStation.addEventListener("click", doPickStation);
+    repickStation.addEventListener("click", doPickStation);
+
+    pickFood.addEventListener("click", doPickFood);
+    repickFood.addEventListener("click", doPickFood);
+
+    resetAll.addEventListener("click", hardReset);
+    copyResult.addEventListener("click", () => copyText(buildResultText()));
+
+    // Initial
+    hardReset();
+  </script>
+</body>
+</html>
