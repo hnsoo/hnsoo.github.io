@@ -221,6 +221,65 @@
     }
 
     }
+
+    .modal{position:fixed; inset:0; display:none; z-index:10000;}
+    .modal.show{display:block;}
+    .modalBackdrop{
+      position:absolute; inset:0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+    }
+    .modalSheet{
+      position:absolute;
+      left:50%;
+      bottom:0;
+      transform: translateX(-50%);
+      width: min(880px, calc(100% - 18px));
+      max-height: 78vh;
+      overflow:auto;
+      border:1px solid rgba(148,163,184,.22);
+      border-radius: 22px 22px 0 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+      box-shadow: 0 25px 80px rgba(0,0,0,.6);
+      padding: 12px;
+    }
+    .modalHead{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+      padding: 6px 4px 10px;
+      border-bottom:1px solid rgba(148,163,184,.14);
+    }
+    .modalHead b{font-size:14px; letter-spacing:-.2px;}
+    .modalSub{font-size:12px; color: var(--muted); margin-top:3px;}
+    .modalActions{display:flex; gap:8px; flex-wrap:wrap; padding:10px 2px 6px;}
+    .modalGroup{padding-top:10px; border-top:1px solid rgba(148,163,184,.12); margin-top:8px;}
+    .modalGroupHead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;}
+    .modalGroupHead b{font-size:13px;}
+    .modalFooter{
+      position: sticky;
+      bottom: 0;
+      padding: 10px 0 2px;
+      background: linear-gradient(180deg, rgba(11,18,32,0), rgba(11,18,32,.55) 40%, rgba(11,18,32,.92));
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top: 10px;
+    }
+    .lpGrid{display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px;}
+    @media(min-width:720px){ .lpGrid{grid-template-columns: repeat(3, minmax(0,1fr));} }
+
+    .chk{
+      display:flex; align-items:center; gap:8px;
+      padding:10px 10px;
+      border:1px solid rgba(148,163,184,.18);
+      border-radius: 14px;
+      background: rgba(0,0,0,.16);
+      cursor:pointer;
+      user-select:none;
+    }
+    .chk input{accent-color: rgba(56,189,248,.95);}
+    .chk small{color:rgba(229,231,235,.88); font-weight:900; letter-spacing:-.2px;}
+    .chk .sw{width:10px;height:10px;border-radius:999px;border:1px solid rgba(255,255,255,.35);}
+
   </style>
 </head>
 <body>
@@ -228,7 +287,7 @@
     <header>
       <div class="brand">
         <h1>랜덤 지하철 · 역 · 음식 (슬롯)</h1>
-        <p class="sub">각 단계: <b>시작</b> → (돌아감) → <b>멈춤</b> → (감속 후 확정).<br/>노선 확정 → 역 활성 / 역 확정 → 음식 활성</p>
+        <p class="sub"></p>
       </div>
       <div class="chip" id="statusChip" title="현재 상태">
         <span class="dot" id="statusDot"></span>
@@ -247,9 +306,11 @@
                 <div class="badge">1</div>
                 <div class="label">
                   <b>수도권 노선</b>
-                  <span>시작 → 멈춤(감속)</span>
+                  <span>시작 → 멈춤</span>
                 </div>
+
               </div>
+              <button class="secondary" type="button" id="openLineModal">노선 선택하기</button>
             </div>
 
             <div class="value" id="lineValue">
@@ -260,6 +321,9 @@
               <button class="primary" id="lineStart">시작</button>
               <button class="secondary" id="lineStop" disabled>멈춤</button>
             </div>
+
+
+
           </div>
 
           <!-- Step 2 -->
@@ -309,8 +373,7 @@
 
         <div class="footerRow">
           <div class="hint">
-            • 데이터는 하단 <code>DATA</code>만 수정<br/>
-            • “멈춤”을 누르면 <b>서서히 감속</b> 후 확정
+            • 노선은 후보군을 지정할 수 있습니다.
           </div>
           <div class="metaPills">
             <button class="ghost danger" id="resetAll">전체 초기화</button>
@@ -322,36 +385,95 @@
   </div>
 
   <div class="toast" id="toast">복사됨</div>
+<div class="modal" id="lineModal" aria-hidden="true">
+  <div class="modalBackdrop" id="lineModalBackdrop"></div>
+
+  <div class="modalSheet" role="dialog" aria-modal="true" aria-label="노선 선택">
+    <div class="modalHead">
+      <div>
+        <b>노선 선택</b>
+        <div class="modalSub" id="lineCountText">0개 선택됨</div>
+      </div>
+      <button class="ghost danger" type="button" id="closeLineModal">닫기</button>
+    </div>
+
+    <div class="modalActions">
+      <button class="ghost" type="button" id="allOn">전체 선택</button>
+      <button class="ghost danger" type="button" id="allOff">전체 해제</button>
+    </div>
+
+    <div class="modalGroup">
+      <div class="modalGroupHead">
+        <b>도시철도</b>
+        <div class="modalActions">
+          <button class="ghost" type="button" data-group-on="metro">전체 선택</button>
+          <button class="ghost danger" type="button" data-group-off="metro">전체 해제</button>
+        </div>
+      </div>
+      <div class="lpGrid" id="group-metro"></div>
+    </div>
+
+    <div class="modalGroup">
+      <div class="modalGroupHead">
+        <b>광역/코레일</b>
+        <div class="modalActions">
+          <button class="ghost" type="button" data-group-on="rail">전체 선택</button>
+          <button class="ghost danger" type="button" data-group-off="rail">전체 해제</button>
+        </div>
+      </div>
+      <div class="lpGrid" id="group-rail"></div>
+    </div>
+
+    <div class="modalGroup">
+      <div class="modalGroupHead">
+        <b>경전철</b>
+        <div class="modalActions">
+          <button class="ghost" type="button" data-group-on="lrt">전체 선택</button>
+          <button class="ghost danger" type="button" data-group-off="lrt">전체 해제</button>
+        </div>
+      </div>
+      <div class="lpGrid" id="group-lrt"></div>
+    </div>
+
+    <div class="modalFooter">
+      <button class="secondary" type="button" id="cancelLineModal">취소</button>
+      <button class="primary" type="button" id="applyLineModal">확인</button>
+    </div>
+  </div>
+</div>
 
   <script>
     const DATA = {
-      lines: [
-    { id: "line1",            name: "1호선",                  color: "#0b5bd3" },
-    { id: "line2",            name: "2호선",                  color: "#22c55e" },
-    { id: "line3",            name: "3호선",                  color: "#f97316" },
-    { id: "line4",            name: "4호선",                  color: "#38bdf8" },
-    { id: "line5",            name: "5호선",                  color: "#a855f7" },
-    { id: "line6",            name: "6호선",                  color: "#d97706" },
-    { id: "line7",            name: "7호선",                  color: "#84cc16" },
-    { id: "line8",            name: "8호선",                  color: "#ec4899" },
-    { id: "line9",            name: "9호선",                  color: "#eab308" },
+    lines: [
+      // ✅ 도시철도(metro): 서울 1~9, 인천 1/2
+      { id:"line1", name:"1호선", color:"#0b5bd3", group:"metro" },
+      { id:"line2", name:"2호선", color:"#22c55e", group:"metro" },
+      { id:"line3", name:"3호선", color:"#f97316", group:"metro" },
+      { id:"line4", name:"4호선", color:"#38bdf8", group:"metro" },
+      { id:"line5", name:"5호선", color:"#a855f7", group:"metro" },
+      { id:"line6", name:"6호선", color:"#d97706", group:"metro" },
+      { id:"line7", name:"7호선", color:"#84cc16", group:"metro" },
+      { id:"line8", name:"8호선", color:"#ec4899", group:"metro" },
+      { id:"line9", name:"9호선", color:"#eab308", group:"metro" },
+      { id:"incheon1", name:"인천1호선", color:"#0047ab", group:"metro" },
+      { id:"incheon2", name:"인천2호선", color:"#00a651", group:"metro" },
 
-    { id: "airport",          name: "공항철도",        color: "#06b6d4" },
-    { id: "sinbundang",       name: "신분당선",                color: "#ef4444" },
-    { id: "suinbundang",      name: "수인·분당선",            color: "#f59e0b" },
-    { id: "gyeongui_jungang", name: "경의·중앙선",            color: "#60a5fa" },
-    { id: "gyeongchun",       name: "경춘선",                 color: "#34d399" },
-    { id: "seohae",           name: "서해선",                 color: "#8b5cf6" },
-    { id: "ui_lrt",           name: "우이신설선 (LRT)",       color: "#a3a3a3" },
+      // ✅ 광역/코레일(rail)
+      { id:"airport", name:"공항철도", color:"#06b6d4", group:"rail" },
+      { id:"sinbundang", name:"신분당선", color:"#ef4444", group:"rail" },
+      { id:"suinbundang", name:"수인·분당선", color:"#f59e0b", group:"rail" },
+      { id:"gyeongui_jungang", name:"경의·중앙선", color:"#60a5fa", group:"rail" },
+      { id:"gyeongchun", name:"경춘선", color:"#34d399", group:"rail" },
+      { id:"seohae", name:"서해선", color:"#8b5cf6", group:"rail" },
+      { id:"gyeonggang", name:"경강선", color:"#ff6f00", group:"rail" },
 
-    { id: "shinlim",          name: "신림선 (경전철)",         color: "#6789ca" },
-    { id: "incheon1",         name: "인천1호선",               color: "#0047ab" },
-    { id: "incheon2",         name: "인천2호선",               color: "#00a651" },
-    { id: "everline",         name: "에버라인 (용인 경전철)",  color: "#f16521" },
-    { id: "u_line",           name: "U Line (의정부 경전철)", color: "#009fe3" },
-    { id: "gyeonggang",       name: "경강선",                 color: "#ff6f00" },
-    { id: "gimpo_gold",       name: "김포 골드라인",           color: "#ffdd00" }
-  ],
+      // ✅ 경전철(lrt)
+      { id:"ui_lrt", name:"우이신설선 (LRT)", color:"#a3a3a3", group:"lrt" },
+      { id:"shinlim", name:"신림선 (경전철)", color:"#6789ca", group:"lrt" },
+      { id:"everline", name:"에버라인 (용인 경전철)", color:"#f16521", group:"lrt" },
+      { id:"u_line", name:"U Line (의정부 경전철)", color:"#009fe3", group:"lrt" },
+      { id:"gimpo_gold", name:"김포 골드라인", color:"#ffdd00", group:"lrt" }
+    ],
       stations: {
     "line1": [
       "연천", "전곡", "청산", "소요산", "동두천", "보산", "동두천중앙", "지행", "덕정", "덕계", "양주", "녹양", "가능", "의정부", "회룡", "망월사", "도봉산", "도봉", "방학", "창동", "녹천", "월계", "광운대", "석계", "신이문", "외대앞", "회기", "청량리", "제기동", "신설동", "동묘앞", "동대문", "종로5가", "종로3가", "종각", "시청", "서울역", "남영", "용산", "노량진", "대방", "신길", "영등포", "신도림", "구로", "구일", "개봉", "오류동", "온수", "역곡", "소사", "부천", "중동", "송내", "부개", "부평", "백운", "동암", "간석", "주안", "도화", "제물포", "도원", "동인천", "인천", "가산디지털단지", "독산", "금천구청", "석수", "관악", "안양", "명학", "금정", "군포", "당정", "의왕", "성균관대", "화서", "수원", "세류", "병점", "세마", "오산대", "오산", "진위", "송탄", "서정리", "평택지제", "평택", "성환", "직산", "두정", "천안", "봉명", "쌍용", "아산", "탕정", "배방", "풍기", "온양온천", "신창"
@@ -432,6 +554,7 @@
  "전통 찻집","와인바","칵테일바","맥주집","핫도그","핫플 레스토랑"
 ]
     };
+
     // ----- Effects ----
     function celebrate(el){
       if(!el) return;
@@ -440,6 +563,121 @@
       el.classList.add('punch');
       if (navigator.vibrate) navigator.vibrate(25);
     }
+
+    // ----- Modal ----
+    const lineSelect = { map: new Map() }; // 적용된 값
+    const lineTemp   = { map: new Map() }; // 모달에서 편집
+
+    function initLineSelect(){
+      DATA.lines.forEach(l => lineSelect.map.set(l.id, true)); // 기본 전부 선택
+    }
+
+    initLineSelect();
+
+    function copySelectToTemp(){
+      lineTemp.map = new Map(lineSelect.map);
+    }
+
+    function applyTempToSelect(){
+      lineSelect.map = new Map(lineTemp.map);
+    }
+
+    function getSelectedLines(){
+      return DATA.lines.filter(l => lineSelect.map.get(l.id));
+    }
+
+    function countTempSelected(){
+      let n = 0;
+      DATA.lines.forEach(l => { if (lineTemp.map.get(l.id)) n++; });
+      return n;
+    }
+
+    function makeLineChipForModal(line){
+      const label = document.createElement("label");
+      label.className = "chk";
+      label.innerHTML = `
+        <input type="checkbox" ${lineTemp.map.get(line.id) ? "checked":""} />
+        <span class="sw" style="background:${line.color}"></span>
+        <small>${line.name}</small>
+      `;
+      const input = label.querySelector("input");
+      input.addEventListener("change", () => {
+        lineTemp.map.set(line.id, input.checked);
+        updateLineCountText();
+      });
+      return label;
+    }
+
+    function renderLineModalList(){
+      const buckets = { metro: [], rail: [], lrt: [] };
+      DATA.lines.forEach(l => buckets[l.group]?.push(l));
+
+      for (const key of ["metro","rail","lrt"]) {
+        const root = document.querySelector(`#group-${key}`);
+        if(!root) continue;
+        root.innerHTML = "";
+        buckets[key].forEach(line => root.appendChild(makeLineChipForModal(line)));
+      }
+      updateLineCountText();
+    }
+
+    function updateLineCountText(){
+      const n = countTempSelected();
+      const el = document.querySelector("#lineCountText");
+      if(el) el.textContent = `${n}개 선택됨`;
+    }
+
+
+    function setAllTemp(val){
+      DATA.lines.forEach(l => lineTemp.map.set(l.id, val));
+      renderLineModalList();
+    }
+
+    function setGroupTemp(group, val){
+      DATA.lines.filter(l => l.group === group).forEach(l => lineTemp.map.set(l.id, val));
+      renderLineModalList();
+    }
+
+    function openLineModal(){
+      copySelectToTemp();
+      renderLineModalList();
+      const modal = document.querySelector("#lineModal");
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden","false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLineModal(){
+      const modal = document.querySelector("#lineModal");
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden","true");
+      document.body.style.overflow = "";
+    }
+
+    document.querySelector("#openLineModal")?.addEventListener("click", openLineModal);
+    document.querySelector("#closeLineModal")?.addEventListener("click", closeLineModal);
+    document.querySelector("#lineModalBackdrop")?.addEventListener("click", closeLineModal);
+    document.querySelector("#cancelLineModal")?.addEventListener("click", closeLineModal);
+
+    document.querySelector("#applyLineModal")?.addEventListener("click", () => {
+      const n = countTempSelected();
+      if (n === 0) return toast("노선을 1개 이상 선택해줘");
+
+      applyTempToSelect();
+      closeLineModal();
+      toast(`노선 ${n}개 적용됨`);
+    });
+
+    document.querySelector("#allOn")?.addEventListener("click", () => setAllTemp(true));
+    document.querySelector("#allOff")?.addEventListener("click", () => setAllTemp(false));
+
+    document.querySelectorAll("[data-group-on]").forEach(btn => {
+      btn.addEventListener("click", () => setGroupTemp(btn.dataset.groupOn, true));
+    });
+    document.querySelectorAll("[data-group-off]").forEach(btn => {
+      btn.addEventListener("click", () => setGroupTemp(btn.dataset.groupOff, false));
+    });
+
 
     // ----- Utils -----
     const $ = (sel) => document.querySelector(sel);
@@ -690,7 +928,7 @@
 
     // ----- Slot instances -----
     const lineSlot = new SlotMachine({
-      getPool: () => DATA.lines,
+      getPool: () => getSelectedLines(),
       renderTick: (lineObj) => renderLinePreview(lineObj),
       renderFinal: (lineObj) => renderLineFinal(lineObj),
       onFinal: (lineObj) => {
